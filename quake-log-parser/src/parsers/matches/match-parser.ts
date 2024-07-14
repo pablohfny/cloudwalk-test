@@ -8,7 +8,7 @@ export class QuakeLogMatchParser {
   }
 
   parse(line: string): MatchData | undefined {
-    const match = this.lineRegEx.exec(line)
+    const match = this.lineRegEx.exec(line.trim())
 
     if (!match) {
       return

@@ -1,4 +1,4 @@
-import { KillData } from '@/types/kill-data';
+import { KillData } from '../../types/kill-data';
 import { QuakeLogKillParser } from './kill-parser';
 
 describe('QuakeLogKillParser', () => {
