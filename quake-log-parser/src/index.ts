@@ -10,12 +10,17 @@ const inputReader = readline.createInterface({
 const killParser = new QuakeLogKillParser()
 const clientParser = new QuakeLogClientParser()
 
+let logPath: string
+let fileLength: number
+const chunkPerRead = 4
+const chunkSize = 1024
+
 export async function getLogPathFromUserInput(): Promise<string> {
-  const logPath = await new Promise<string>((resolve) => {
+  const path = await new Promise<string>((resolve) => {
     inputReader.question('Inform log path:\n', (path) => resolve(path))
   })
   inputReader.close()
-  return logPath
+  return path
 }
 
 export function getLogPathFromArgumentValue(argName: string): string | undefined {
@@ -26,7 +31,7 @@ export function getLogPathFromArgumentValue(argName: string): string | undefined
   return undefined
 }
 
-function parseLine(line: string){
+function parseLine(line: string) {
   const killData = killParser.parse(line)
   const clientData = clientParser.parse(line)
 
@@ -37,8 +42,30 @@ function parseLine(line: string){
   }
 }
 
+function parseChunk(chunk: Buffer | string, incompleteLine: string = '',  isEOF: boolean = false): [string [], string] {
+  // If there is an incomplete line from the previous chunk, prepend it to the current chunk
+  if (incompleteLine) {
+    chunk = incompleteLine + chunk
+  }
+
+  incompleteLine = ''
+
+  // Split the chunk into lines for parsing
+  const chunkStr = chunk.toString()
+  const lines = chunkStr.split(/(?<=\n)/)
+
+  // If the last line is incomplete, store it for the next chunk
+  const lastLine = lines[lines.length - 1]
+  const lastLineIsComplete = lastLine.endsWith('\n')
+  if (!lastLineIsComplete && !isEOF) {
+    incompleteLine = lines.pop()!
+  }
+
+  return [lines, incompleteLine]
+}
+
 export async function main() {
-  const logPath = getLogPathFromArgumentValue('--file') ?? (await getLogPathFromUserInput())
+  logPath = getLogPathFromArgumentValue('--file') ?? (await getLogPathFromUserInput())
 
   if (!logPath || !fs.existsSync(logPath)) {
     console.error('Log path informed incorrectly. Exiting...')
@@ -59,25 +86,9 @@ export async function main() {
 
     readStream.on('data', (chunk) => {
       chunkCount++
-
-      // If there is an incomplete line from the previous chunk, prepend it to the current chunk
-      if (incompleteLine) {
-        chunk = incompleteLine + chunk
-      }
-
-      incompleteLine = ''
-
-      // Split the chunk into lines for parsing
-      const chunkStr = chunk.toString()
-      const lines = chunkStr.split(/(?<=\n)/)
-
-      // If the last line is incomplete, store it for the next chunk
-      const lastLine = lines[lines.length - 1]
-      const lastLineIsComplete = lastLine.endsWith('\n')
-      const isEOF = readEnd === fileLength && chunkCount === ChunkPerRead
-      if (!lastLineIsComplete && !isEOF) {
-        incompleteLine = lines.pop()!
-      }
+      const isEOF = readEnd === fileLength && chunkCount === chunkPerRead
+      const [lines, lastIncompleteLine] = parseChunk(chunk, incompleteLine, isEOF)
+      incompleteLine = lastIncompleteLine
     })
 
     await new Promise((resolve) => {
