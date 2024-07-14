@@ -4,7 +4,7 @@ export class GameData {
     kills: Map<string, number> = new Map();
     kills_by_means: Map<string, number> = new Map();
     
-    constructor(args: KillData) {
+    constructor(args: GameData) {
         Object.assign(this, args);
     }
 }
