@@ -34,20 +34,18 @@ describe('index.ts', () => {
   });
 
   describe('main', () => {
-    it('should log the correct log path ', async () => {
-      console.log = jest.fn();
-      process.exit = jest.fn() as any;
+    it('should not log error when log path is correct', async () => {
+      console.error = jest.fn();
       (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       process.argv = ['node', 'index.js', '--file', '/path/to/logfile.log'];
       await main();
 
-      expect(console.log).toHaveBeenCalledWith('Log path: /path/to/logfile.log');
+      expect(console.error).not.toHaveBeenCalledWith('Log path informed incorrectly. Exiting...');
     });
 
     it('should log an error if the log path is incorrect', async () => {
       console.error = jest.fn();
-      process.exit = jest.fn() as any;
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
       process.argv = ['node', 'index.js', '--file', '/invalid/path/to/logfile.log'];

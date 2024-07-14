@@ -29,7 +29,26 @@ export async function main() {
     console.error('Log path informed incorrectly. Exiting...')
     return
   }
-  console.log(`Log path: ${logPath}`)
+
+  const fileLength = fs.statSync(logPath).size
+  const readSize = Math.min(1024, fileLength)
+  let readEnd = readSize
+
+  console.log(`LogSize: ${fileLength}`)
+
+  for (let readInit = 0; readInit <= fileLength; readInit += readSize) {
+    const readStream = fs.createReadStream(logPath, { start: readInit, end: readEnd })
+
+    readStream.on('data', (chunk) => {
+      console.log(chunk.toString())
+    })
+
+    await new Promise((resolve) => {
+      readStream.on('end', resolve)
+    })
+
+    readEnd = Math.min(readEnd + readSize, fileLength)
+  }
 }
 
 main()
