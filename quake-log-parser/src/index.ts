@@ -1,6 +1,7 @@
 import fs from 'fs'
 import readline from 'readline'
 import { QuakeLogClientParser, QuakeLogKillParser } from './parsers'
+import { MatchData } from './types'
 
 const inputReader = readline.createInterface({
   input: process.stdin,
@@ -11,9 +12,8 @@ const killParser = new QuakeLogKillParser()
 const clientParser = new QuakeLogClientParser()
 
 let logPath: string
-let fileLength: number
+let chunkSize = 1024
 const chunkPerRead = 4
-const chunkSize = 1024
 
 export async function getLogPathFromUserInput(): Promise<string> {
   const path = await new Promise<string>((resolve) => {
@@ -65,6 +65,8 @@ function parseChunk(chunk: Buffer | string, incompleteLine: string = '',  isEOF:
 }
 
 export async function main() {
+  const gameData = new Map<string, MatchData>()
+
   logPath = getLogPathFromArgumentValue('--file') ?? (await getLogPathFromUserInput())
 
   if (!logPath || !fs.existsSync(logPath)) {
@@ -73,10 +75,10 @@ export async function main() {
   }
 
   const fileLength = fs.statSync(logPath).size
-  const chunkSize = Math.min(1024, fileLength)
-  const ChunkPerRead = 4
+  chunkSize = Math.min(1024, fileLength)
+
   let readInit = 0
-  let readEnd = Math.min(chunkSize * ChunkPerRead, fileLength)
+  let readEnd = Math.min(chunkSize * chunkPerRead, fileLength)
 
   while (true) {
     let incompleteLine: string = ''
@@ -100,8 +102,10 @@ export async function main() {
     }
 
     readInit = readEnd - Buffer.byteLength(incompleteLine, 'utf8')
-    readEnd = Math.min(readInit + chunkSize * ChunkPerRead, fileLength)
+    readEnd = Math.min(readInit + chunkSize * chunkPerRead, fileLength)
   }
+
+  process.exit(0)
 }
 
 main()

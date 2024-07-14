@@ -1,4 +1,4 @@
-import { ClientData } from "@/types"
+import { ClientData } from "../../types"
 
 export class QuakeLogClientParser {
   lineRegEx: RegExp
