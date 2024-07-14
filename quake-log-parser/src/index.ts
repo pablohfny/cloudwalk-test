@@ -31,23 +31,43 @@ export async function main() {
   }
 
   const fileLength = fs.statSync(logPath).size
-  const readSize = Math.min(1024, fileLength)
-  let readEnd = readSize
+  const chunkSize = Math.min(1024, fileLength)
 
-  console.log(`LogSize: ${fileLength}`)
+  let readInit = 0
+  let readEnd = Math.min(chunkSize * 4, fileLength)
+  let isEOF = false
+  
+  while (true) {
+    let lastLine = ''
 
-  for (let readInit = 0; readInit <= fileLength; readInit += readSize) {
-    const readStream = fs.createReadStream(logPath, { start: readInit, end: readEnd })
+    const readStream = fs.createReadStream(logPath, { start: readInit, end: readEnd, highWaterMark: chunkSize })
 
     readStream.on('data', (chunk) => {
-      console.log(chunk.toString())
+      const lines = chunk.toString().split(/(?<=\n)/)
+      lastLine = lines[lines.length - 1]
+      console.log(lines)
     })
 
     await new Promise((resolve) => {
       readStream.on('end', resolve)
     })
 
-    readEnd = Math.min(readEnd + readSize, fileLength)
+    if (lastLine.endsWith('\n')) {
+      readInit = Math.min(readEnd, fileLength)
+      readEnd = Math.min(readEnd + chunkSize, fileLength)
+    } else {
+      const byteLength = Buffer.byteLength(lastLine)
+      readInit = Math.min(readEnd - byteLength, fileLength)
+      readEnd = Math.min(readInit + chunkSize, fileLength)
+    }
+
+    if(isEOF){
+      break;
+    }
+
+    if(readEnd >= fileLength){
+      isEOF = true;
+    }
   }
 }
 
