@@ -1,6 +1,6 @@
 # Cloudwalk Quake3 Log Report Script
 
-Implemented a script that reads a quake log and prints a report in the console and saves the report folder inside the project root. per match as follows:
+Implemented a script that reads a quake log, prints a report in the console and saves the report folder inside the project root. per match as follows:
 
 ```json
 "game_1": {
